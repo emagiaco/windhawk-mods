@@ -1,8 +1,8 @@
 // ==WindhawkMod==
 // @id              macos-enter-rename
-// @name            Enter to Rename in File Explorer
-// @description     Rename selected files and folders with Enter, like in macOS Finder.
-// @version         0.4.0
+// @name            Enter to Rename in File Explorer and Desktop
+// @description     Rename selected files and folders with Enter in File Explorer and on the desktop.
+// @version         0.5.0
 // @author          emagiaco
 // @github          https://github.com/emagiaco
 // @include         explorer.exe
@@ -11,26 +11,27 @@
 
 // ==WindhawkModReadme==
 /*
-# Enter to Rename in File Explorer
+# Enter to Rename in File Explorer and Desktop
 
-Use **Enter** to rename a selected file or folder in Windows File Explorer,
-like in macOS Finder. Press **Enter** again to confirm the new name.
-The standard **F2** shortcut is unchanged.
+Use **Enter** to rename a selected file or folder in Windows File Explorer
+or on the desktop, like in macOS Finder. Press **Enter** again to confirm
+the new name. The standard **F2** shortcut is unchanged.
 
 ## Scope
 
-- Works only in File Explorer windows, not on the desktop or in file dialogs,
-    and only when the keyboard focus appears to be inside Explorer's shell file
-    list.
+- Works in File Explorer windows and on the desktop when the keyboard focus
+  is inside Explorer's shell file list.
+- Does not affect file dialogs or unrelated applications.
 - Does not intercept Enter while editing text, in the address/search controls,
   or with Ctrl, Alt, or Shift pressed.
 - This mod intentionally does *not* remap Ctrl+Enter to open a file.
 
 ## Compatibility
 
-Tested by the original user on Windows 11 for files, folders, rename confirmation,
-search, and multi-selection. Other Windows versions, Explorer extensions and
-alternative list controls have not yet been validated.
+The original file-list behavior was tested on Windows 11. Desktop support uses
+the same Progman and WorkerW window classes as the AutoHotkey script. Other
+Windows versions, Explorer extensions and alternative list controls have not
+yet been validated.
 
 ## Notes
 
@@ -58,10 +59,16 @@ static bool ClassIs(HWND hwnd, const wchar_t* expected) {
            _wcsicmp(actual, expected) == 0;
 }
 
+static bool IsExplorerOrDesktopRoot(HWND hwnd) {
+    HWND root = GetAncestor(hwnd, GA_ROOT);
+    return ClassIs(root, L"CabinetWClass") ||
+           ClassIs(root, L"Progman") ||
+           ClassIs(root, L"WorkerW");
+}
+
 static bool InFileList() {
     HWND focus = GetFocus();
-    if (!focus) return false;
-    if (!ClassIs(GetAncestor(focus, GA_ROOT), L"CabinetWClass")) return false;
+    if (!focus || !IsExplorerOrDesktopRoot(focus)) return false;
     bool shellView = false;
     bool fileList = false;
     for (HWND w = focus; w; w = GetParent(w)) {
